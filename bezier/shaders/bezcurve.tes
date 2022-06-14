@@ -1,0 +1,61 @@
+#version 400
+
+layout( isolines ) in;
+
+uniform mat4 MVP;
+uniform vec3 posoff;
+uniform float sin;
+uniform float additional;
+
+uniform vec3 windPos;
+uniform float windStr;
+uniform vec3 hpos;
+
+void main()
+{
+    float u = gl_TessCoord.x;
+
+    vec3 p0 = gl_in[0].gl_Position.xyz;
+    vec3 p1 = gl_in[1].gl_Position.xyz;
+    vec3 p2 = gl_in[2].gl_Position.xyz;
+    vec3 p3 = gl_in[3].gl_Position.xyz;
+
+    float u1 = (1.0 - u);
+    float u2 = u * u;
+
+    // Bernstein polynomials
+    float b3 = u2 * u;
+    float b2 = 3.0 * u2 * u1;
+    float b1 = 3.0 * u * u1 * u1;
+    float b0 = u1 * u1 * u1;
+
+    vec3 dir0 = normalize((p0+posoff)-windPos);
+    vec3 dir1 = normalize((p1+posoff)-windPos);
+    vec3 dir2 = normalize((p2+posoff)-windPos);
+    vec3 dir3 = normalize((p3+posoff)-windPos);
+
+    /*vec3 dir1 = normalize(windPos-(p1+posoff));
+    vec3 dir2 = normalize(windPos-(p2+posoff));
+    vec3 dir3 = normalize(windPos-(p3+posoff));*/
+
+    dir1 = vec3(dir1.x*sin/4,dir1.y*sin/16,dir1.z*sin/4);
+    dir2 = vec3(dir2.x*sin/4,dir2.y*sin/16,dir2.z*sin/4);
+    dir3 = vec3(0,dir3.y*sin*1.2,0);
+
+    // Cubic Bezier interpolation
+    vec3 zm1 = p1 + dir1;
+    zm1.y+=0.5;
+    vec3 zm2 = p2 + dir2;
+    zm2.y+=0.5;
+    vec3 zm3 = p3 + dir3;
+    zm3.z = zm3.z - hpos.z/2;
+    //zm3 = p3 - zm2;
+    //zm3 = vec3(-zm3.x,zm3.y,-zm3.z);
+    //vec3 p = p0 * b0 + (p1 + vec3(0,sin,0)) *b1 + (p2 + vec3(-additional/2,sin,0)) * b2 + (p3 + vec3(0,-sin,0)) * b3;
+    //vec3 p = p0 * b0 + (p1 + vec3(0,sin/8,sin/4)) *b1 + (p2 + vec3(0,sin/8,sin/4)) * b2 + p3 * b3;
+    vec3 p = p0 * b0 + zm1 *b1 + zm2 * b2 + zm3 * b3;
+    //vec3 p = p0 * b0 + p1 *b1 + p2 * b2 + p3 * b3;
+
+    gl_Position = MVP * vec4(p+posoff, 1.0);
+
+}
